@@ -1,20 +1,34 @@
 import socket
+import threading
 
-from PyQt5 import QtCore, QtGui, QtWidgets
+import constants
+from threading import Thread
 
-TCP_IP = '127.0.0.1'
-TCP_PORT = 5000
-BUFFER_SIZE = 20  # Normally 1024, but we want fast response
 
-s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-s.bind((TCP_IP, TCP_PORT))
-s.listen(1)
+class Server(Thread):
+    def __init__(self):
+        super().__init__()
+        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        try:
+            self.socket.bind((constants.IP, constants.PORT))
+        except socket.error as e:
+            print(e)
+        self.socket.listen(5)
 
-conn, addr = s.accept()
-print('Connection address:', addr)
-while 1:
-    data = conn.recv(BUFFER_SIZE)
-    if not data: break
-    print("received data:", data)
-    conn.send(data)  # echo
-conn.close()
+    def send(self, conn):
+        while True:
+            data = conn.recv(constants.BUFFER_SIZE)
+            if not data: break
+            print("received data:", data)
+            conn.send(data)
+
+    def run(self):
+        while True:
+            conn, addr = self.socket.accept()
+            threading.Thread(self.send(conn))
+            print("Connection address: ", addr)
+
+
+if __name__ == "__main__":
+    server = Server()
+    server.run()
