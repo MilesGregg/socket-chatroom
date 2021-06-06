@@ -3,26 +3,24 @@ import constants
 from threading import Thread
 
 
-class Client(Thread):
-    def __init__(self):
-        super().__init__()
-        print("Connecting to server... at --- Port: ", constants.PORT, ", IP: ", constants.IP)
-        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        try:
-            self.socket.connect((constants.IP, constants.PORT))
-        except socket.error as error:
-            print(error)
+class Client:
+    socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-    def run(self):
+    def send_message(self):
         while True:
-            message = input()
-            self.socket.send(message.encode())
-            serverData = self.socket.recv(constants.BUFFER_SIZE)
-            print("Message received: ", serverData)
+            self.socket.send(input().encode())
 
-        self.socket.close()
+    def __init__(self):
+        self.socket.connect((constants.IP, constants.PORT))
+        thread = Thread(target=self.send_message())
+        thread.daemon = True
+        thread.start()
+        while True:
+            server_data = self.socket.recv(constants.BUFFER_SIZE)
+            if not server_data:
+                break
+            print(str(server_data))
 
 
 if __name__ == "__main__":
     client = Client()
-    client.run()
