@@ -1,6 +1,9 @@
 import socket
+import sys
+
 import constants
 from threading import Thread
+from user import User
 
 
 class Server:
@@ -8,32 +11,34 @@ class Server:
     socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
     def __init__(self):
-        try:
-            self.socket.bind((constants.IP, constants.PORT))
-        except socket.error as e:
-            print(e)
-        self.socket.listen(100)
+        self.socket.bind((constants.IP, constants.PORT))
+        self.socket.listen()
 
-    def send(self, connection):
         while True:
-            received_data = connection.recv(constants.BUFFER_SIZE)
-            for c in self.connections:
-                c.send(received_data)
-            if not received_data:
-                self.connections.remove(connection)
-                connection.close()
+            client, address = self.socket.accept()
+            client.send('Username'.encode(constants.ENCODING))
+            username = client.recv(constants.BUFFER_SIZE).decode(constants.ENCODING)
+            print(username + " connected at: ", str(address))
+            self.connections.append(User(client, username))
+            self.send_to_clients(username.encode(constants.ENCODING) + " entered the chat room".encode(constants.ENCODING))
+            Thread(target=self.receive_information, args=(client, username)).start()
+
+    def send_to_clients(self, message):
+        for connection in self.connections:
+            connection.client.send(message)
+
+    def receive_information(self, client, username):
+        while True:
+            try:
+                message = client.recv(constants.BUFFER_SIZE)
+                self.send_to_clients(message)
+            except socket.error as e:
+                sys.stderr.write(e)
+                self.connections.remove(client)
+                client.close()
+                self.send_to_clients(username.encode(constants.ENCODING) + " left the chat room".encode(constants.ENCODING))
                 break
-
-    def run(self):
-        while True:
-            conn, addr = self.socket.accept()
-            thread = Thread(self.send(conn))
-            thread.daemon = True
-            thread.start()
-            self.connections.append(conn)
-            print("New Connection: ", addr)
 
 
 if __name__ == "__main__":
     server = Server()
-    server.run()
