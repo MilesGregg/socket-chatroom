@@ -1,6 +1,7 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
 import sys
 
+
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         self.count = 0
@@ -12,7 +13,7 @@ class Ui_MainWindow(object):
         self.pushButton.setGeometry(QtCore.QRect(50, 40, 92, 36))
         self.pushButton.setObjectName("pushButton")
 
-        self.pushButton.clicked.connect(self.incCount)#connect a method to click event
+        self.pushButton.clicked.connect(self.incCount)  # connect a method to click event
 
         self.label = QtWidgets.QLabel(self.centralwidget)
         self.label.setGeometry(QtCore.QRect(50, 120, 121, 21))
@@ -37,14 +38,11 @@ class Ui_MainWindow(object):
 
     def incCount(self):
         self.label.setText(str(self.count))
-        self.count+=1
+        self.count += 1
+
 
 if __name__ == "__main__":
-
-    while True:
-        test = input()
-        print(test)
-
+    print(ord("A"))
     '''app = QtWidgets.QApplication(sys.argv)
     ex = Ui_MainWindow()
     w = QtWidgets.QMainWindow()

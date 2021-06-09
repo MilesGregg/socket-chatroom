@@ -10,7 +10,7 @@ class Server:
     connections = []
     socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.socket.bind((constants.IP, constants.PORT))
         self.socket.listen()
 
@@ -23,11 +23,13 @@ class Server:
             self.send_to_clients(username.encode(constants.ENCODING) + " entered the chat room".encode(constants.ENCODING))
             Thread(target=self.receive_information, args=(client, username)).start()
 
-    def send_to_clients(self, message):
-        for connection in self.connections:
-            connection.client.send(message)
-
-    def receive_information(self, client, username):
+    def receive_information(self, client: socket, username: str) -> None:
+        """
+        receives current incoming information from the client
+        :param client: current client socket
+        :param username: current users username
+        :return: None
+        """
         while True:
             try:
                 message = client.recv(constants.BUFFER_SIZE)
@@ -38,6 +40,15 @@ class Server:
                 client.close()
                 self.send_to_clients(username.encode(constants.ENCODING) + " left the chat room".encode(constants.ENCODING))
                 break
+
+    def send_to_clients(self, message: bytes) -> None:
+        """
+        Send message to all clients
+        :param message: Message to send
+        :return: None
+        """
+        for connection in self.connections:
+            connection.client.send(message)
 
 
 if __name__ == "__main__":
