@@ -1,4 +1,7 @@
+from client_ui import ClientUI
 import socket
+
+from PyQt5 import QtWidgets
 import constants
 import sys
 from threading import Thread
@@ -41,4 +44,7 @@ class Client:
 
 
 if __name__ == "__main__":
-    client = Client()
+    #client = Client()
+    app = QtWidgets.QApplication(sys.argv)
+    ex = ClientUI()
+    sys.exit(app.exec_())
