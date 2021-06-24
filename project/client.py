@@ -46,5 +46,5 @@ class Client:
 if __name__ == "__main__":
     #client = Client()
     app = QtWidgets.QApplication(sys.argv)
-    ex = ClientUI()
+    client = ClientUI(app)
     sys.exit(app.exec_())
