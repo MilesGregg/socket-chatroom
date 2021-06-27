@@ -7,10 +7,11 @@ import sys
 from threading import Thread
 
 
-class Client:
+class Client(ClientUI):
     socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
     def __init__(self):
+        super().__init__(app=QtWidgets.QApplication(sys.argv))
         self.username = input("Username: ")
         self.socket.connect((constants.IP, constants.PORT))
 
@@ -37,6 +38,7 @@ class Client:
                     self.socket.send(self.username.encode(constants.ENCODING))
                 else:
                     print(received)
+                    self.messages.append(received)
             except socket.error as e:
                 sys.stderr.write(e)
                 self.socket.close()
@@ -45,6 +47,9 @@ class Client:
 
 if __name__ == "__main__":
     #client = Client()
+
+
     app = QtWidgets.QApplication(sys.argv)
-    client = ClientUI(app)
+    client_ui = ClientUI(app)
+    #client = Client(ui_client=client_ui)
     sys.exit(app.exec_())

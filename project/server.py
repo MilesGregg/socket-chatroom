@@ -1,5 +1,4 @@
 import socket
-import sys
 
 import constants
 from threading import Thread
@@ -35,7 +34,6 @@ class Server:
                 message = client.recv(constants.BUFFER_SIZE)
                 self.send_to_clients(message)
             except socket.error as e:
-                sys.stderr.write(e)
                 self.connections.remove(client)
                 client.close()
                 self.send_to_clients(username.encode(constants.ENCODING) + " left the chat room".encode(constants.ENCODING))
