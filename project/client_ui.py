@@ -11,8 +11,8 @@ class ClientUI(QMainWindow):
         
         self.messages = QTextBrowser(self)
         self.messages.setGeometry(30, 30, width*0.25, height*0.15)
-        for i in range(50):
-            self.messages.append("testing")
+        for i in range(100):
+            self.messages.append("testing messages")
  
         self.input_message = QLineEdit(self)
         self.input_message.setPlaceholderText("Type message...")
