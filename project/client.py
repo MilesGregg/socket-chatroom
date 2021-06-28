@@ -48,7 +48,6 @@ class Client(ClientUI):
 if __name__ == "__main__":
     #client = Client()
 
-
     app = QtWidgets.QApplication(sys.argv)
     client_ui = ClientUI(app)
     #client = Client(ui_client=client_ui)
