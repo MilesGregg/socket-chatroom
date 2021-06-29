@@ -87,11 +87,16 @@ class ClientUIWidget(QWidget):
 
         # message and send button
         self.message = QLineEdit()
+        self.message.returnPressed.connect(self.send_message)
         self.message.setStyleSheet("background-color:rgb(53, 53, 53)")
         self.send_message_btn = QPushButton("Send")
+        self.send_message_btn.clicked.connect(self.send_message)
         self.send_message_btn.setStyleSheet("background-color:rgb(25, 106, 255)")
         grid.addWidget(self.message, 2, 0, 1, 1)
         grid.addWidget(self.send_message_btn, 2, 1, 1, 1)
+
+    def send_message(self):
+        self.messages.append(self.message.text())
 
 
 class ClientUI(QMainWindow):
