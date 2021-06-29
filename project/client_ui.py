@@ -12,9 +12,10 @@ class ClientUIWidget(QWidget):
         self.chat_tab = QWidget()
         self.tabs.addTab(self.home_tab, "Connect")
         self.tabs.addTab(self.chat_tab, "Chat")
-        self.tabs.setTabEnabled(1, False)
+        self.tabs.setTabEnabled(1, True)
 
         self.set_home_tab(home_tab=self.home_tab)
+        self.set_chat_tab(chat_tab=self.chat_tab)
 
         self.window_layout.addWidget(self.tabs)
         self.setLayout(self.window_layout)
@@ -27,7 +28,7 @@ class ClientUIWidget(QWidget):
         self.nickname = QLabel(self)
         self.nickname.setText('Nickname:')
         self.nickname_input = QLineEdit(self)
-        self.nickname_input.setStyleSheet("background-color:white")
+        self.nickname_input.setStyleSheet("background-color:rgb(53, 53, 53)")
         grid.addWidget(self.nickname, 0, 0, 1, 1)
         grid.addWidget(self.nickname_input, 0, 1, 1, 1)
 
@@ -35,7 +36,7 @@ class ClientUIWidget(QWidget):
         self.ip_address = QLabel(self)
         self.ip_address.setText('IP Address:')
         self.ip_address_input = QLineEdit(self)
-        self.ip_address_input.setStyleSheet("background-color:white")
+        self.ip_address_input.setStyleSheet("background-color:rgb(53, 53, 53)")
         grid.addWidget(self.ip_address, 1, 0, 1, 1)
         grid.addWidget(self.ip_address_input, 1, 1, 1, 1)
 
@@ -43,7 +44,7 @@ class ClientUIWidget(QWidget):
         self.port = QLabel(self)
         self.port.setText('Port:')
         self.port_input = QLineEdit(self)
-        self.port_input.setStyleSheet("background-color:white")
+        self.port_input.setStyleSheet("background-color:rgb(53, 53, 53)")
         grid.addWidget(self.port, 2, 0, 1, 1)
         grid.addWidget(self.port_input, 2, 1, 1, 1)
 
@@ -60,6 +61,37 @@ class ClientUIWidget(QWidget):
 
     def set_chat_tab(self, chat_tab: QWidget):
         grid = QGridLayout()
+        chat_tab.setLayout(grid)
+
+        # chat messages
+        self.messages = QTextBrowser(self)
+        self.messages.setStyleSheet("background-color:rgb(53, 53, 53)")
+        for i in range(50):
+            self.messages.append("testing")
+
+        # chat users
+        self.chat_users = QTextBrowser(self)
+        self.chat_users.setStyleSheet("background-color:rgb(53, 53, 53)")
+        for i in range(50):
+            self.chat_users.append("testing")
+
+        grid.addWidget(self.messages, 0, 0, 1, 2)
+        grid.addWidget(self.chat_users, 0, 2, 2, 2)
+
+        # send message to
+        self.send_to_message = QLabel("To: ", self)
+        self.send_to = QComboBox(self)
+        self.send_to.addItem("Everyone")
+        grid.addWidget(self.send_to_message, 1, 0, 1, 1)
+        grid.addWidget(self.send_to, 1, 1, 1, 1)
+
+        # message and send button
+        self.message = QLineEdit()
+        self.message.setStyleSheet("background-color:rgb(53, 53, 53)")
+        self.send_message_btn = QPushButton("Send")
+        self.send_message_btn.setStyleSheet("background-color:rgb(25, 106, 255)")
+        grid.addWidget(self.message, 2, 0, 1, 1)
+        grid.addWidget(self.send_message_btn, 2, 1, 1, 1)
 
 
 class ClientUI(QMainWindow):
@@ -67,28 +99,9 @@ class ClientUI(QMainWindow):
         super(ClientUI, self).__init__()
 
         self.setWindowTitle("client")
-        self.setGeometry(100, 100, 400, 400)
+        self.setGeometry(0, 0, 500, 300)
         self.setCentralWidget(ClientUIWidget(self))
         self.show()
-
-
-        '''screen = app.primaryScreen()
-        width = float(screen.size().width())
-        height = float(screen.size().width())
-        self.setWindowTitle("client")
-        self.setGeometry(width*0.2, height*0.2, width*0.35, height*0.25)
-        
-        self.messages = QTextBrowser(self)
-        self.messages.setGeometry(30, 30, width*0.25, height*0.15)
-        for i in range(100):
-            self.messages.append("testing messages")
-
-        self.input_message = QLineEdit(self)
-        self.input_message.setPlaceholderText("Type message...")
-        self.input_message.setGeometry(30, height*0.175, width*0.25, height*0.02)
- 
-        self.send_button = QPushButton("Send", self)
-        self.send_button.setGeometry(width*0.275, height*0.175, 60, 30)'''
 
 
 def set_dark_theme():
@@ -104,7 +117,7 @@ def set_dark_theme():
     palette.setColor(QtGui.QPalette.Button, QtGui.QColor(53, 53, 53))
     palette.setColor(QtGui.QPalette.ButtonText, QtCore.Qt.white)
     palette.setColor(QtGui.QPalette.BrightText, QtCore.Qt.red)
-    palette.setColor(QtGui.QPalette.Highlight, QtGui.QColor(142, 45, 197).lighter())
+    palette.setColor(QtGui.QPalette.Highlight, QtGui.QColor(30, 144, 255).lighter())
     palette.setColor(QtGui.QPalette.HighlightedText, QtCore.Qt.black)
     app.setPalette(palette)
 
