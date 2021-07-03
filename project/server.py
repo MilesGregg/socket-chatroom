@@ -31,13 +31,25 @@ class Server:
         """
         while True:
             try:
-                message = client.recv(constants.BUFFER_SIZE)
-                self.send_to_clients(message)
+                message = client.recv(constants.BUFFER_SIZE).decode(constants.ENCODING)
+
+                print("message received: " + message)
+
+                if message.startswith("[SENDTO:ALL]"):
+                    #message.split
+                    print("receiveved message")
+                    #self.send_to_clients(message.split("]"))
+
+                '''if message.startswith("[JOINED]"):
+                    self.send_to_clients("")'''
+                    
+
+                #self.send_to_clients(message)
             except socket.error as e:
                 self.connections.remove(client)
                 client.close()
                 self.send_to_clients(username.encode(constants.ENCODING) + " left the chat room".encode(constants.ENCODING))
-                break
+                break        
 
     def send_to_clients(self, message: bytes) -> None:
         """

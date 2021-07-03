@@ -1,3 +1,4 @@
+from client import Client
 import sys
 from PyQt5 import QtCore, QtGui
 from PyQt5.QtWidgets import *
@@ -51,6 +52,7 @@ class ClientUIWidget(QWidget):
         # connect button
         self.connect = QPushButton("Connect")
         self.connect.setStyleSheet("background-color:rgb(25, 106, 255)")
+        self.connect.clicked.connect(lambda : Client.connect(nickname=self.nickname_input, ip_address=self.ip_address_input, port=self.port_input))
         self.disconnect = QPushButton("Disconnect")
         self.disconnect.setStyleSheet("background-color:rgb(25, 106, 255)")
         grid.addWidget(self.connect, 3, 0, 1, 1)
