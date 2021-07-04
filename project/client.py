@@ -13,12 +13,12 @@ class Client: #(ClientUI)
         #super().__init__(app=QtWidgets.QApplication(sys.argv))
         #self.username = input("Username: ")
         #self.socket.connect((constants.IP, constants.PORT))
-        print()
+        print("in method")
         #Thread(target=self.receive).start()
         #Thread(target=self.send).start()
 
-    @staticmethod
-    def connect(nickname: QtWidgets.QLineEdit, ip_address: QtWidgets.QLineEdit, port: QtWidgets.QLineEdit):
+    #@staticmethod
+    def connect(self, nickname: QtWidgets.QLineEdit, ip_address: QtWidgets.QLineEdit, port: QtWidgets.QLineEdit):
         port_text = port.text()
         if len(port_text) == 0 or not port_text.isnumeric():
             print("Port input must be a number and greater than 0")
