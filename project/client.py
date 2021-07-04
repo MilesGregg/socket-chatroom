@@ -1,32 +1,51 @@
+from abc import abstractmethod
 import socket
 
-from PyQt5 import QtWidgets
+from PyQt5.QtWidgets import *
 import constants
 import sys
 from threading import Thread
 
 
 class Client: #(ClientUI)
-    socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
     def __init__(self):
         #super().__init__(app=QtWidgets.QApplication(sys.argv))
         #self.username = input("Username: ")
         #self.socket.connect((constants.IP, constants.PORT))
         print("in method")
+        self.socket_connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         #Thread(target=self.receive).start()
         #Thread(target=self.send).start()
 
-    #@staticmethod
-    def connect(self, nickname: QtWidgets.QLineEdit, ip_address: QtWidgets.QLineEdit, port: QtWidgets.QLineEdit):
+    def connect(self, nickname: QLineEdit, ip_address: QLineEdit, port: QLineEdit, tabs: QTabWidget):
         port_text = port.text()
         if len(port_text) == 0 or not port_text.isnumeric():
             print("Port input must be a number and greater than 0")
             return
-        '''try:
-            self.socket.connect((ip_address.text(), int(port_text)))
+        try:
+            self.socket_connection.connect((ip_address.text(), int(port_text)))
         except:
-            print("can't connect to server.....")'''
+            print("can't connect to server...")
+            self.socket_connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+        self.socket_connection.send(bytes("[JOINED]="+nickname.text(), constants.ENCODING))
+        tabs.setTabEnabled(1, True)
+
+        Thread(target=self.update_server).start()
+
+    def update_server(self):
+        print("in here")
+        while True:
+            try:
+                received = self.socket_connection.recv(constants.BUFFER_SIZE).decode(constants.ENCODING)
+                print(received)
+            except socket.error as e:
+                print(e)
+                self.socket_connection.close()
+                break
+
+    
 
     def send(self) -> None:
         """

@@ -15,14 +15,15 @@ class Server:
 
         while True:
             client, address = self.socket.accept()
-            client.send('Username'.encode(constants.ENCODING))
+            self.connections.append(User(client, "bob"))
+            '''client.send('Username'.encode(constants.ENCODING))
             username = client.recv(constants.BUFFER_SIZE).decode(constants.ENCODING)
             print(username + " connected at: ", str(address))
             self.connections.append(User(client, username))
-            self.send_to_clients(username.encode(constants.ENCODING) + " entered the chat room".encode(constants.ENCODING))
-            Thread(target=self.receive_information, args=(client, username)).start()
+            self.send_to_clients(username.encode(constants.ENCODING) + " entered the chat room".encode(constants.ENCODING))'''
+            Thread(target=self.receive_information, args=(client,)).start()
 
-    def receive_information(self, client: socket, username: str) -> None:
+    def receive_information(self, client: socket) -> None:
         """
         receives current incoming information from the client
         :param client: current client socket
@@ -40,15 +41,16 @@ class Server:
                     print("receiveved message")
                     #self.send_to_clients(message.split("]"))
 
-                '''if message.startswith("[JOINED]"):
-                    self.send_to_clients("")'''
+                if message.startswith("[JOINED]"):
+                    print("someone joined")
+                    self.send_to_clients(bytes("joined the chat!", constants.ENCODING))
                     
 
                 #self.send_to_clients(message)
             except socket.error as e:
                 self.connections.remove(client)
                 client.close()
-                self.send_to_clients(username.encode(constants.ENCODING) + " left the chat room".encode(constants.ENCODING))
+                #self.send_to_clients(username.encode(constants.ENCODING) + " left the chat room".encode(constants.ENCODING))
                 break        
 
     def send_to_clients(self, message: bytes) -> None:

@@ -3,9 +3,11 @@ import sys
 from PyQt5 import QtCore, QtGui
 from PyQt5.QtWidgets import *
 
-class ClientUIWidget(QWidget, Client):
+class ClientUIWidget(QWidget):
     def __init__(self, parent):
         super(QWidget, self).__init__(parent=parent)
+
+        self.client_util = Client()
 
         self.window_layout = QVBoxLayout(self)
         self.tabs = QTabWidget()
@@ -27,7 +29,7 @@ class ClientUIWidget(QWidget, Client):
 
         # nickname
         self.nickname = QLabel(self)
-        self.nickname.setText('Nickname:')
+        self.nickname.setText("Nickname:")
         self.nickname_input = QLineEdit(self)
         self.nickname_input.setStyleSheet("background-color:rgb(53, 53, 53)")
         grid.addWidget(self.nickname, 0, 0, 1, 1)
@@ -35,16 +37,18 @@ class ClientUIWidget(QWidget, Client):
 
         # ip address
         self.ip_address = QLabel(self)
-        self.ip_address.setText('IP Address:')
+        self.ip_address.setText("IP Address:")
         self.ip_address_input = QLineEdit(self)
+        self.ip_address_input.setText("127.0.0.1")
         self.ip_address_input.setStyleSheet("background-color:rgb(53, 53, 53)")
         grid.addWidget(self.ip_address, 1, 0, 1, 1)
         grid.addWidget(self.ip_address_input, 1, 1, 1, 1)
 
         # port
         self.port = QLabel(self)
-        self.port.setText('Port:')
+        self.port.setText("Port:")
         self.port_input = QLineEdit(self)
+        self.port_input.setText("5028")
         self.port_input.setStyleSheet("background-color:rgb(53, 53, 53)")
         grid.addWidget(self.port, 2, 0, 1, 1)
         grid.addWidget(self.port_input, 2, 1, 1, 1)
@@ -52,7 +56,7 @@ class ClientUIWidget(QWidget, Client):
         # connect button
         self.connect = QPushButton("Connect")
         self.connect.setStyleSheet("background-color:rgb(25, 106, 255)")
-        self.connect.clicked.connect(lambda : self.connect(nickname=self.nickname_input, ip_address=self.ip_address_input, port=self.port_input))
+        self.connect.clicked.connect(lambda : self.client_util.connect(nickname=self.nickname_input, ip_address=self.ip_address_input, port=self.port_input, tabs=self.tabs))
         self.disconnect = QPushButton("Disconnect")
         self.disconnect.setStyleSheet("background-color:rgb(25, 106, 255)")
         grid.addWidget(self.connect, 3, 0, 1, 1)
@@ -84,6 +88,7 @@ class ClientUIWidget(QWidget, Client):
         self.send_to_message = QLabel("To: ", self)
         self.send_to = QComboBox(self)
         self.send_to.addItem("Everyone")
+        self.send_to.addItem("everyone2")
         grid.addWidget(self.send_to_message, 1, 0, 1, 1)
         grid.addWidget(self.send_to, 1, 1, 1, 1)
 
@@ -101,9 +106,9 @@ class ClientUIWidget(QWidget, Client):
         self.messages.append(self.message.text())
 
 
-class ClientUI(QMainWindow):
+class ClientUIWindow(QMainWindow):
     def __init__(self):
-        super(ClientUI, self).__init__()
+        super(ClientUIWindow, self).__init__()
 
         self.setWindowTitle("client")
         self.setGeometry(0, 0, 500, 300)
@@ -131,5 +136,5 @@ def set_dark_theme():
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     set_dark_theme()
-    c = ClientUI()
+    c = ClientUIWindow()
     sys.exit(app.exec_())
