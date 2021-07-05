@@ -34,12 +34,21 @@ class Client: #(ClientUI)
 
         Thread(target=self.update_server).start()
 
+    def send_message(self, message: QLineEdit):
+        message_text = message.text()
+        if len(message) == 0:
+            return
+        
+
     def update_server(self):
         print("in here")
         while True:
             try:
                 received = self.socket_connection.recv(constants.BUFFER_SIZE).decode(constants.ENCODING)
-                print(received)
+                if received.startswith("[CLIENTS]="):
+                    print(received.split("=")[1])
+                else:
+                    print(received)
             except socket.error as e:
                 print(e)
                 self.socket_connection.close()

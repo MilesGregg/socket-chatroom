@@ -1,5 +1,7 @@
-from client import Client
+import socket
+from threading import Thread
 import sys
+import constants
 from PyQt5 import QtCore, QtGui
 from PyQt5.QtWidgets import *
 
@@ -7,7 +9,8 @@ class ClientUIWidget(QWidget):
     def __init__(self, parent):
         super(QWidget, self).__init__(parent=parent)
 
-        self.client_util = Client()
+        #self.client_util = Client()
+        self.socket_connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
         self.window_layout = QVBoxLayout(self)
         self.tabs = QTabWidget()
@@ -48,7 +51,7 @@ class ClientUIWidget(QWidget):
         self.port = QLabel(self)
         self.port.setText("Port:")
         self.port_input = QLineEdit(self)
-        self.port_input.setText("5028")
+        self.port_input.setText("5031")
         self.port_input.setStyleSheet("background-color:rgb(53, 53, 53)")
         grid.addWidget(self.port, 2, 0, 1, 1)
         grid.addWidget(self.port_input, 2, 1, 1, 1)
@@ -56,7 +59,7 @@ class ClientUIWidget(QWidget):
         # connect button
         self.connect = QPushButton("Connect")
         self.connect.setStyleSheet("background-color:rgb(25, 106, 255)")
-        self.connect.clicked.connect(lambda : self.client_util.connect(nickname=self.nickname_input, ip_address=self.ip_address_input, port=self.port_input, tabs=self.tabs))
+        self.connect.clicked.connect(self.connect_to_server)
         self.disconnect = QPushButton("Disconnect")
         self.disconnect.setStyleSheet("background-color:rgb(25, 106, 255)")
         grid.addWidget(self.connect, 3, 0, 1, 1)
@@ -88,7 +91,6 @@ class ClientUIWidget(QWidget):
         self.send_to_message = QLabel("To: ", self)
         self.send_to = QComboBox(self)
         self.send_to.addItem("Everyone")
-        self.send_to.addItem("everyone2")
         grid.addWidget(self.send_to_message, 1, 0, 1, 1)
         grid.addWidget(self.send_to, 1, 1, 1, 1)
 
@@ -105,6 +107,50 @@ class ClientUIWidget(QWidget):
     def send_message(self):
         self.messages.append(self.message.text())
 
+    def connect_to_server(self):
+        port_text = self.port_input.text()
+        if len(port_text) == 0 or not port_text.isnumeric():
+            print("Port input must be a number and greater than 0")
+            return
+        try:
+            self.socket_connection.connect((self.ip_address_input.text(), int(port_text)))
+        except:
+            print("can't connect to server...")
+            self.socket_connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+        self.socket_connection.send(bytes("[JOINED]="+self.nickname_input.text(), constants.ENCODING))
+        self.tabs.setTabEnabled(1, True)
+
+        Thread(target=self.update_server).start()
+
+    def disconnect_from_server(self):
+        self.socket_connection.close()
+
+    def send_message(self, message: QLineEdit):
+        message_text = message.text()
+        if len(message) == 0:
+            return
+        
+        
+        
+    def update_server(self):
+        print("in here")
+        while True:
+            try:
+                received = self.socket_connection.recv(constants.BUFFER_SIZE).decode(constants.ENCODING)
+                print("message from server = " + received)
+                if received.startswith("[CLIENTS]="):
+                    clients = received.split("[CLIENTS]=")[1].split("-")
+                    self.send_to.clear()
+                    for client in clients:
+                        self.send_to.addItem(client)
+                else:
+                    print(received)
+            except socket.error as e:
+                print(e)
+                self.socket_connection.close()
+                break
+
 
 class ClientUIWindow(QMainWindow):
     def __init__(self):
@@ -112,8 +158,12 @@ class ClientUIWindow(QMainWindow):
 
         self.setWindowTitle("client")
         self.setGeometry(0, 0, 500, 300)
-        self.setCentralWidget(ClientUIWidget(self))
+        self.client = ClientUIWidget(self)
+        self.setCentralWidget(self.client)
         self.show()
+
+    def closeEvent(self, event):
+        self.client.disconnect_server()
 
 
 def set_dark_theme():
