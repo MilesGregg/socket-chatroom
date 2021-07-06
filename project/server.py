@@ -1,32 +1,38 @@
+import os
 import socket
+import sys
 
 import constants
+import time
 from threading import Thread
 
-class User(object):
-    def __init__(self, client: socket, username: str):
-        self.client = client
-        self.username = username
-
 class Server:
-    socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
     def __init__(self) -> None:
+        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socket.bind((constants.IP, constants.PORT))
-        self.socket.listen()
-        self.connections = []
+        self.connections = {}
 
         try:
-            while True:
-                client, address = self.socket.accept()
-                '''client.send('Username'.encode(constants.ENCODING))
-                username = client.recv(constants.BUFFER_SIZE).decode(constants.ENCODING)
-                print(username + " connected at: ", str(address))
-                self.connections.append(User(client, username))
-                self.send_to_clients(username.encode(constants.ENCODING) + " entered the chat room".encode(constants.ENCODING))'''
-                Thread(target=self.receive_information, args=(client,)).start()
-        except KeyboardInterrupt:
+            self.socket.listen(5)
+            print("Server started listing...")
+            main_thread = Thread(target=self.handle_incoming)
+            main_thread.start()
+            main_thread.join()
             self.socket.close()
+        except KeyboardInterrupt:
+            print("Closing server!")
+            try:
+                sys.exit(0)
+            except SystemExit:
+                os._exit(0)
+
+    def handle_incoming(self):
+        '''
+        handle all incoming client connections and handle them by making new thread for each cleint
+        '''
+        while True:
+            client, address = self.socket.accept()
+            Thread(target=self.receive_information, args=(client,)).start()
 
     def receive_information(self, client: socket) -> None:
         """
@@ -35,45 +41,55 @@ class Server:
         :param username: current users username
         :return: None
         """
+        client_nickname = ""
         while True:
-            try:
-                message = client.recv(constants.BUFFER_SIZE).decode(constants.ENCODING)
+            message = client.recv(constants.BUFFER_SIZE).decode(constants.ENCODING)
 
-                print("message received: " + message)
+            print("message received: " + message)
 
-                if message.startswith("[SENDTO:ALL]"):
-                    #message.split
-                    print("receiveved message")
-                    #self.send_to_clients(message.split("]"))
-
-                if message.startswith("[JOINED]"):
-                    self.connections.append(User(client, message.split("=")[1]))
-                    print("someone joined")
-                    self.send_to_clients(bytes(message.split("=")[1] + " joined the chat!", constants.ENCODING))
-                    clients = []
+            if message.startswith("[SENDTO:ALL]") and client_nickname:
+                self.send_to_clients(bytes(message.replace("[SENDTO:ALL]", "[SENDTO:ALL:" + client_nickname + "]"), constants.ENCODING))
+                continue
+            elif message.startswith("[SENDTO") and client_nickname:
+                try :
+                    message_split = message.split("]")
+                    name = message_split[0][1:].split(":")[1]
+                    print("NAME = " + name)
+                    print("ACTUAL MESSAGE = " + message_split[1].split("=")[1])
                     for connection in self.connections:
-                        clients.append(connection.username)
-                        #print(connection.username)
-                    self.send_to_clients(bytes("[CLIENTS]=" + "-".join(clients), constants.ENCODING))
+                        print("connection usernames: " + connection.username)
+                        if name == connection.username:
+                            print("sending to client")
+                            connection.client.send(bytes("[SENDTO:" + client_nickname + "]=" + message_split[1].split("=")[1], constants.ENCODING))
+                except:
+                    print("error sending to directly")
 
-                elif message.startswith("[LEFT]"):
-                    client.close()
-                    self.connections.remove(client)
-                    break
-                    
-
-                #self.send_to_clients(message)
-            except socket.error as e:
-                self.connections.remove(client)
+            if message.startswith("[JOINED]"):
+                client_nickname = message.split("=")[1]
+                self.connections[client] = client_nickname
+                print(client_nickname + " joined that chat!")
+                self.send_to_clients(bytes("[JOINED]=" + client_nickname, constants.ENCODING))
+                time.sleep(0.1)
+                clients = []
+                for _, client_name in self.connections.items():
+                    clients.append(client_name)
+                self.send_to_clients(bytes("[CLIENTS]=" + "-".join(clients), constants.ENCODING))
+                continue
+            elif message.startswith("[LEFT]"):
                 client.close()
-                #self.send_to_clients(username.encode(constants.ENCODING) + " left the chat room".encode(constants.ENCODING))
+                try:
+                    del self.connections[client]
+                except KeyError:
+                    pass
+                if len(client_nickname) != 0:
+                    print(client_nickname + " left that chat!")
+                    self.send_to_clients(bytes("[LEFT]=" + client_nickname, constants.ENCODING))
+                    time.sleep(0.1)
+                    clients = []
+                    for _, client_name in self.connections.items():
+                        clients.append(client_name)
+                    self.send_to_clients(bytes("[CLIENTS]=" + "-".join(clients), constants.ENCODING))
                 break
-
-    def append_usernames(self):
-        users = []
-        for i in self.connections:
-            print(i)
-        return -1
 
     def send_to_clients(self, message: bytes) -> None:
         """
@@ -82,7 +98,7 @@ class Server:
         :return: None
         """
         for connection in self.connections:
-            connection.client.send(message)
+            connection.send(message)
 
 
 if __name__ == "__main__":

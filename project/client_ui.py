@@ -1,6 +1,7 @@
 import socket
 from threading import Thread
 import sys
+import time
 import constants
 from PyQt5 import QtCore, QtGui
 from PyQt5.QtWidgets import *
@@ -11,6 +12,7 @@ class ClientUIWidget(QWidget):
 
         #self.client_util = Client()
         self.socket_connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.connected = False
 
         self.window_layout = QVBoxLayout(self)
         self.tabs = QTabWidget()
@@ -18,7 +20,7 @@ class ClientUIWidget(QWidget):
         self.chat_tab = QWidget()
         self.tabs.addTab(self.home_tab, "Connect")
         self.tabs.addTab(self.chat_tab, "Chat")
-        self.tabs.setTabEnabled(1, True)
+        self.tabs.setTabEnabled(1, False)
 
         self.set_home_tab(home_tab=self.home_tab)
         self.set_chat_tab(chat_tab=self.chat_tab)
@@ -51,7 +53,7 @@ class ClientUIWidget(QWidget):
         self.port = QLabel(self)
         self.port.setText("Port:")
         self.port_input = QLineEdit(self)
-        self.port_input.setText("5031")
+        self.port_input.setText("5036")
         self.port_input.setStyleSheet("background-color:rgb(53, 53, 53)")
         grid.addWidget(self.port, 2, 0, 1, 1)
         grid.addWidget(self.port_input, 2, 1, 1, 1)
@@ -62,6 +64,7 @@ class ClientUIWidget(QWidget):
         self.connect.clicked.connect(self.connect_to_server)
         self.disconnect = QPushButton("Disconnect")
         self.disconnect.setStyleSheet("background-color:rgb(25, 106, 255)")
+        self.disconnect.clicked.connect(self.disconnect_from_server)
         grid.addWidget(self.connect, 3, 0, 1, 1)
         grid.addWidget(self.disconnect, 3, 1, 1, 1)
 
@@ -75,15 +78,12 @@ class ClientUIWidget(QWidget):
         # chat messages
         self.messages = QTextBrowser(self)
         self.messages.setStyleSheet("background-color:rgb(53, 53, 53)")
-        for i in range(50):
-            self.messages.append("testing")
-
         # chat users
-        self.chat_users = QTextBrowser(self)
+        self.chat_users = QListView()
+        self.chat_users.setWindowTitle("Chat Users")
         self.chat_users.setStyleSheet("background-color:rgb(53, 53, 53)")
-        for i in range(50):
-            self.chat_users.append("testing")
-
+        self.chat_model = QtGui.QStandardItemModel(self.chat_users)
+        self.chat_users.setModel(self.chat_model)
         grid.addWidget(self.messages, 0, 0, 1, 2)
         grid.addWidget(self.chat_users, 0, 2, 2, 2)
 
@@ -104,11 +104,9 @@ class ClientUIWidget(QWidget):
         grid.addWidget(self.message, 2, 0, 1, 1)
         grid.addWidget(self.send_message_btn, 2, 1, 1, 1)
 
-    def send_message(self):
-        self.messages.append(self.message.text())
-
     def connect_to_server(self):
         port_text = self.port_input.text()
+        self.connected_username = self.nickname_input.text()
         if len(port_text) == 0 or not port_text.isnumeric():
             print("Port input must be a number and greater than 0")
             return
@@ -117,39 +115,65 @@ class ClientUIWidget(QWidget):
         except:
             print("can't connect to server...")
             self.socket_connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
-        self.socket_connection.send(bytes("[JOINED]="+self.nickname_input.text(), constants.ENCODING))
+        self.socket_connection.send(bytes("[JOINED]=" + self.nickname_input.text(), constants.ENCODING))
+        self.connected = True
         self.tabs.setTabEnabled(1, True)
-
-        Thread(target=self.update_server).start()
+        self.thread = Thread(target=self.update_server)
+        self.thread.start()
 
     def disconnect_from_server(self):
-        self.socket_connection.close()
-
-    def send_message(self, message: QLineEdit):
-        message_text = message.text()
-        if len(message) == 0:
+        if self.connected == False:
             return
-        
-        
+        self.socket_connection.send(bytes("[LEFT]="  + self.nickname_input.text(), constants.ENCODING))
+        self.connected = False
+        self.thread.join()
+        self.socket_connection.close()
+        self.socket_connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+    def send_message(self):
+        message_text = self.message.text()
+        if len(message_text) == 0:
+            return
+        if self.send_to.currentText() == "Everyone":
+            self.socket_connection.send(bytes("[SENDTO:ALL]=" + message_text, constants.ENCODING))
+        else:
+            self.socket_connection.send(bytes("[SENDTO:" + self.connected_username + "]=" + message_text, constants.ENCODING))
+            time.sleep(0.1)
+            self.socket_connection.send(bytes("[SENDTO:" + self.send_to.currentText() + "]=" + message_text, constants.ENCODING))
+        self.message.clear()
         
     def update_server(self):
-        print("in here")
-        while True:
-            try:
-                received = self.socket_connection.recv(constants.BUFFER_SIZE).decode(constants.ENCODING)
-                print("message from server = " + received)
-                if received.startswith("[CLIENTS]="):
-                    clients = received.split("[CLIENTS]=")[1].split("-")
-                    self.send_to.clear()
-                    for client in clients:
+        while self.connected: 
+            received = self.socket_connection.recv(constants.BUFFER_SIZE).decode(constants.ENCODING)
+            print("message from server = " + received)
+
+            if received.startswith("[CLIENTS]="):
+                clients = received.split("[CLIENTS]=")[1].split("-")
+                self.chat_model.clear()
+                self.send_to.clear()
+                self.send_to.addItem("Everyone")
+                for client in clients:
+                    item = QtGui.QStandardItem(client)
+                    item.setCheckable(False)
+                    self.chat_model.appendRow(item)
+                    if client != self.connected_username:
                         self.send_to.addItem(client)
-                else:
-                    print(received)
-            except socket.error as e:
-                print(e)
-                self.socket_connection.close()
-                break
+            elif received.startswith("[SENDTO:ALL:"):
+                name = received.split("]")[0][1:].split(":")[2] + ": "
+                print(" ALL NAME = ", name)
+                self.messages.append(name + received.split("=")[1])
+                self.messages.moveCursor(QtGui.QTextCursor.End)
+            elif received.startswith("[SENDTO:"):
+                name = received.split("]")[0][1:].split(":")[1] + ": "
+                self.messages.append(name + received.split("=")[1])
+                self.messages.moveCursor(QtGui.QTextCursor.End)
+            elif received.startswith("[JOINED]="):
+                self.messages.append(received.split("=")[1] + " joined the chat!")
+                self.messages.moveCursor(QtGui.QTextCursor.End)
+            elif received.startswith("[LEFT]="):
+                self.messages.append(received.split("=")[1] + " left the chat!")
+                self.messages.moveCursor(QtGui.QTextCursor.End)
+            time.sleep(0.1)
 
 
 class ClientUIWindow(QMainWindow):
@@ -163,8 +187,7 @@ class ClientUIWindow(QMainWindow):
         self.show()
 
     def closeEvent(self, event):
-        self.client.disconnect_server()
-
+        self.client.disconnect_from_server()
 
 def set_dark_theme():
     app.setStyle('fusion')
