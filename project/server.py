@@ -14,6 +14,7 @@ class Server:
 
         try:
             self.socket.listen()
+            #print("Started server on -> address: {address} | port: {port}".format(address=constants.IP, port=constants.PORT))
             print("Server started listing...")
             main_thread = Thread(target=self.handle_incoming)
             main_thread.start()

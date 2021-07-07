@@ -197,11 +197,14 @@ class ClientUIWidget(QWidget):
                     sys.exit(0)
                 except SystemExit:
                     os._exit(0)
-            print("message from server = " + received)
+            #print("message from server = " + received)
 
             if received.startswith("[CLIENTS]="):
                 clients = received.split("[CLIENTS]=")[1].split("-")
                 self.chat_model.clear()
+                '''top_item = QtGui.QStandardItem("All Users:\n")
+                top_item.setCheckable(False)
+                self.chat_model.appendRow(top_item)'''
                 self.send_to.clear()
                 self.send_to.addItem("Everyone")
                 for client in clients:
