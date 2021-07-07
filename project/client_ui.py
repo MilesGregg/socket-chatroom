@@ -1,4 +1,5 @@
 import socket
+import os
 from threading import Thread
 import sys
 import time
@@ -10,10 +11,11 @@ class ClientUIWidget(QWidget):
     def __init__(self, parent):
         super(QWidget, self).__init__(parent=parent)
 
-        #self.client_util = Client()
-        self.socket_connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        # sockect communication and connection
         self.connected = False
+        self.socket_connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
+        # main window and tabs layout for gui
         self.window_layout = QVBoxLayout(self)
         self.tabs = QTabWidget()
         self.home_tab = QWidget()
@@ -28,7 +30,13 @@ class ClientUIWidget(QWidget):
         self.window_layout.addWidget(self.tabs)
         self.setLayout(self.window_layout)
 
-    def set_home_tab(self, home_tab: QWidget):
+    def set_home_tab(self, home_tab: QWidget) -> None:
+        """
+        setup the home tab gui
+        :param home_tab: home tab Qidget to modify that specific tab
+        
+        :return: None
+        """
         grid = QGridLayout()
         home_tab.setLayout(grid)
 
@@ -36,7 +44,7 @@ class ClientUIWidget(QWidget):
         self.nickname = QLabel(self)
         self.nickname.setText("Nickname:")
         self.nickname_input = QLineEdit(self)
-        self.nickname_input.setStyleSheet("background-color:rgb(53, 53, 53)")
+        self.nickname_input.setStyleSheet(constants.INPUT_COLOR)
         grid.addWidget(self.nickname, 0, 0, 1, 1)
         grid.addWidget(self.nickname_input, 0, 1, 1, 1)
 
@@ -45,7 +53,7 @@ class ClientUIWidget(QWidget):
         self.ip_address.setText("IP Address:")
         self.ip_address_input = QLineEdit(self)
         self.ip_address_input.setText("127.0.0.1")
-        self.ip_address_input.setStyleSheet("background-color:rgb(53, 53, 53)")
+        self.ip_address_input.setStyleSheet(constants.INPUT_COLOR)
         grid.addWidget(self.ip_address, 1, 0, 1, 1)
         grid.addWidget(self.ip_address_input, 1, 1, 1, 1)
 
@@ -53,17 +61,17 @@ class ClientUIWidget(QWidget):
         self.port = QLabel(self)
         self.port.setText("Port:")
         self.port_input = QLineEdit(self)
-        self.port_input.setText("5036")
-        self.port_input.setStyleSheet("background-color:rgb(53, 53, 53)")
+        self.port_input.setText("2532")
+        self.port_input.setStyleSheet(constants.INPUT_COLOR)
         grid.addWidget(self.port, 2, 0, 1, 1)
         grid.addWidget(self.port_input, 2, 1, 1, 1)
 
         # connect button
         self.connect = QPushButton("Connect")
-        self.connect.setStyleSheet("background-color:rgb(25, 106, 255)")
+        self.connect.setStyleSheet(constants.BUTTON_COLOR)
         self.connect.clicked.connect(self.connect_to_server)
         self.disconnect = QPushButton("Disconnect")
-        self.disconnect.setStyleSheet("background-color:rgb(25, 106, 255)")
+        self.disconnect.setStyleSheet(constants.BUTTON_COLOR)
         self.disconnect.clicked.connect(self.disconnect_from_server)
         grid.addWidget(self.connect, 3, 0, 1, 1)
         grid.addWidget(self.disconnect, 3, 1, 1, 1)
@@ -72,16 +80,26 @@ class ClientUIWidget(QWidget):
         grid.setColumnStretch(1, 1)
 
     def set_chat_tab(self, chat_tab: QWidget):
+        """
+        setup the chat tab gui
+        :param chat_tab: home tab Qidget to modify that specific tab
+
+        :return: None
+        """
         grid = QGridLayout()
         chat_tab.setLayout(grid)
 
         # chat messages
-        self.messages = QTextBrowser(self)
-        self.messages.setStyleSheet("background-color:rgb(53, 53, 53)")
+        self.messages = QListView()
+        self.messages.setWindowTitle("Messages")
+        self.messages.setStyleSheet(constants.INPUT_COLOR)
+        self.messages_model = QtGui.QStandardItemModel(self.messages)
+        self.messages.setModel(self.messages_model)
+
         # chat users
         self.chat_users = QListView()
         self.chat_users.setWindowTitle("Chat Users")
-        self.chat_users.setStyleSheet("background-color:rgb(53, 53, 53)")
+        self.chat_users.setStyleSheet(constants.INPUT_COLOR)
         self.chat_model = QtGui.QStandardItemModel(self.chat_users)
         self.chat_users.setModel(self.chat_model)
         grid.addWidget(self.messages, 0, 0, 1, 2)
@@ -97,40 +115,61 @@ class ClientUIWidget(QWidget):
         # message and send button
         self.message = QLineEdit()
         self.message.returnPressed.connect(self.send_message)
-        self.message.setStyleSheet("background-color:rgb(53, 53, 53)")
+        self.message.setStyleSheet(constants.INPUT_COLOR)
         self.send_message_btn = QPushButton("Send")
         self.send_message_btn.clicked.connect(self.send_message)
-        self.send_message_btn.setStyleSheet("background-color:rgb(25, 106, 255)")
+        self.send_message_btn.setStyleSheet(constants.BUTTON_COLOR)
         grid.addWidget(self.message, 2, 0, 1, 1)
         grid.addWidget(self.send_message_btn, 2, 1, 1, 1)
 
-    def connect_to_server(self):
+    def connect_to_server(self) -> None:
+        """
+        Attempt to connect to the specified server depending on the 3 different inputs, if the server is not open
+        then the client will not connect to the server. All of the inputs must be length > 0 to connect to the server.
+        The client will create a new thread to handle all of the server messages in and out.
+
+        :return: None
+        """
         port_text = self.port_input.text()
         self.connected_username = self.nickname_input.text()
-        if len(port_text) == 0 or not port_text.isnumeric():
-            print("Port input must be a number and greater than 0")
+        if len(self.nickname_input.text()) == 0 or len(self.ip_address_input.text()) == 0 or len(port_text) == 0 or not port_text.isnumeric():
+            print("Nickname, IP Address, and Port input must be a number and greater than 0 characters long")
             return
         try:
             self.socket_connection.connect((self.ip_address_input.text(), int(port_text)))
         except:
             print("can't connect to server...")
             self.socket_connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            return
         self.socket_connection.send(bytes("[JOINED]=" + self.nickname_input.text(), constants.ENCODING))
         self.connected = True
         self.tabs.setTabEnabled(1, True)
         self.thread = Thread(target=self.update_server)
         self.thread.start()
 
-    def disconnect_from_server(self):
+    def disconnect_from_server(self) -> None:
+        """
+        Distconnect to the current server that the client is connected to and will reconnect when entering a new
+        nickname, ip address, and port number.
+
+        :return: None
+        """
         if self.connected == False:
             return
         self.socket_connection.send(bytes("[LEFT]="  + self.nickname_input.text(), constants.ENCODING))
         self.connected = False
+        self.tabs.setTabEnabled(1, False)
         self.thread.join()
         self.socket_connection.close()
         self.socket_connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-    def send_message(self):
+    def send_message(self) -> None:
+        """
+        This function will send a message that is > 0 characters in length to the server. It handles if the message need to be
+        sent to all of the connected clients or a specific one.
+
+        :return: None
+        """
         message_text = self.message.text()
         if len(message_text) == 0:
             return
@@ -142,9 +181,22 @@ class ClientUIWidget(QWidget):
             self.socket_connection.send(bytes("[SENDTO:" + self.send_to.currentText() + "]=" + message_text, constants.ENCODING))
         self.message.clear()
         
-    def update_server(self):
+    def update_server(self) -> None:
+        """
+        Handles all of the messages sent from the server to the clients and then chooses what to do with the message. If the message
+        is about clients then it will update the chat users list. If the message needs to be displayed it will display the message
+        on the main text feed. Then finally it will handle any disconnections from the server.
+
+        :return: None
+        """
         while self.connected: 
             received = self.socket_connection.recv(constants.BUFFER_SIZE).decode(constants.ENCODING)
+            if not received:
+                print("disconnected from server!")
+                try:
+                    sys.exit(0)
+                except SystemExit:
+                    os._exit(0)
             print("message from server = " + received)
 
             if received.startswith("[CLIENTS]="):
@@ -160,19 +212,22 @@ class ClientUIWidget(QWidget):
                         self.send_to.addItem(client)
             elif received.startswith("[SENDTO:ALL:"):
                 name = received.split("]")[0][1:].split(":")[2] + ": "
-                print(" ALL NAME = ", name)
-                self.messages.append(name + received.split("=")[1])
-                self.messages.moveCursor(QtGui.QTextCursor.End)
+                item = QtGui.QStandardItem(name + received.split("=")[1])
+                item.setCheckable(False)
+                self.messages_model.appendRow(item)
             elif received.startswith("[SENDTO:"):
                 name = received.split("]")[0][1:].split(":")[1] + ": "
-                self.messages.append(name + received.split("=")[1])
-                self.messages.moveCursor(QtGui.QTextCursor.End)
+                item = QtGui.QStandardItem(name + received.split("=")[1])
+                item.setCheckable(False)
+                self.messages_model.appendRow(item)
             elif received.startswith("[JOINED]="):
-                self.messages.append(received.split("=")[1] + " joined the chat!")
-                self.messages.moveCursor(QtGui.QTextCursor.End)
+                item = QtGui.QStandardItem(received.split("=")[1] + " joined the chat!")
+                item.setCheckable(False)
+                self.messages_model.appendRow(item)
             elif received.startswith("[LEFT]="):
-                self.messages.append(received.split("=")[1] + " left the chat!")
-                self.messages.moveCursor(QtGui.QTextCursor.End)
+                item = QtGui.QStandardItem(received.split("=")[1] + " left the chat!")
+                item.setCheckable(False)
+                self.messages_model.appendRow(item)
             time.sleep(0.1)
 
 
@@ -186,10 +241,20 @@ class ClientUIWindow(QMainWindow):
         self.setCentralWidget(self.client)
         self.show()
 
-    def closeEvent(self, event):
+    def closeEvent(self, event) -> None:
+        """
+        When closing out of the main window disonnect from the server.
+
+        :return: None
+        """
         self.client.disconnect_from_server()
 
-def set_dark_theme():
+def set_dark_theme() -> None:
+    """
+    Set dark theme to the window.
+
+    :return: None
+    """
     app.setStyle('fusion')
     palette = QtGui.QPalette()
     palette.setColor(QtGui.QPalette.Window, QtGui.QColor(53, 53, 53))
