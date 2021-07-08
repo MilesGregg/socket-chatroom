@@ -8,20 +8,21 @@ from threading import Thread
 
 class Server:
     def __init__(self) -> None:
+        # setup TCP communication
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socket.bind((constants.IP, constants.PORT))
         self.connections = {}
 
+        print("Started server on -> address: {address} | port: {port}".format(address=constants.IP, port=constants.PORT))
+
         try:
             self.socket.listen()
-            #print("Started server on -> address: {address} | port: {port}".format(address=constants.IP, port=constants.PORT))
             print("Server started listing...")
             main_thread = Thread(target=self.handle_incoming)
             main_thread.start()
             main_thread.join()
             self.socket.close()
-        except:
-            self.socket.close()
+        except KeyboardInterrupt:
             print("Closing server!")
             try:
                 sys.exit(0)
@@ -30,22 +31,13 @@ class Server:
 
     def handle_incoming(self) -> None:
         """
-        handle all incoming client connections and handle them by making new thread for each cleint
+        handle all incoming client connections and handle them by making new thread for each client
         """
         while True:
-            try:
-                client, address = self.socket.accept()
-                thread = Thread(target=self.receive_information, args=(client,))
-                thread.start()
-                thread.join()
-            except:
-                self.socket.close()
-                try:
-                    sys.exit(0)
-                except SystemExit:
-                    os._exit(0)
+            client, address = self.socket.accept()
+            Thread(target=self.update, args=(client,)).start()
 
-    def receive_information(self, client: socket) -> None:
+    def update(self, client: socket) -> None:
         """
         receives current incoming information from the client
         :param client: current client socket
@@ -63,15 +55,21 @@ class Server:
             elif message.startswith("[SENDTO") and client_nickname:
                 message_split = message.split("]")
                 name = message_split[0][1:].split(":")[1]
-                print("NAME = " + name)
-                print("ACTUAL MESSAGE = " + message_split[1].split("=")[1])
+                #print("NAME = " + name)
+                #print("ACTUAL MESSAGE = " + message_split[1].split("=")[1])
                 for client_sock, client_name in self.connections.items():
                     if name == client_name:
-                        print("sending to client")
+                        #print("sending to client")
                         client_sock.send(bytes("[SENDTO:" + client_nickname + "]=" + message_split[1].split("=")[1], constants.ENCODING))
                 continue
             elif message.startswith("[JOINED]"):
                 client_nickname = message.split("=")[1]
+                '''current_clients = []
+                [current_clients.append(client_name) for _, client_name in self.connections.items()]
+                if client_nickname in current_clients:
+                    continue
+                #print(current_clients)
+                time.sleep(0.1)'''
                 self.connections[client] = client_nickname
                 print(client_nickname + " joined that chat!")
                 self.send_to_clients(bytes("[JOINED]=" + client_nickname, constants.ENCODING))

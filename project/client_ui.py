@@ -144,7 +144,7 @@ class ClientUIWidget(QWidget):
         self.socket_connection.send(bytes("[JOINED]=" + self.nickname_input.text(), constants.ENCODING))
         self.connected = True
         self.tabs.setTabEnabled(1, True)
-        self.thread = Thread(target=self.update_server)
+        self.thread = Thread(target=self.update)
         self.thread.start()
 
     def disconnect_from_server(self) -> None:
@@ -159,7 +159,7 @@ class ClientUIWidget(QWidget):
         self.socket_connection.send(bytes("[LEFT]="  + self.nickname_input.text(), constants.ENCODING))
         self.connected = False
         self.tabs.setTabEnabled(1, False)
-        self.thread.join()
+        #self.thread.join()
         self.socket_connection.close()
         self.socket_connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
@@ -181,7 +181,7 @@ class ClientUIWidget(QWidget):
             self.socket_connection.send(bytes("[SENDTO:" + self.send_to.currentText() + "]=" + message_text, constants.ENCODING))
         self.message.clear()
         
-    def update_server(self) -> None:
+    def update(self) -> None:
         """
         Handles all of the messages sent from the server to the clients and then chooses what to do with the message. If the message
         is about clients then it will update the chat users list. If the message needs to be displayed it will display the message
@@ -202,9 +202,9 @@ class ClientUIWidget(QWidget):
             if received.startswith("[CLIENTS]="):
                 clients = received.split("[CLIENTS]=")[1].split("-")
                 self.chat_model.clear()
-                '''top_item = QtGui.QStandardItem("All Users:\n")
+                top_item = QtGui.QStandardItem("All Users:\n")
                 top_item.setCheckable(False)
-                self.chat_model.appendRow(top_item)'''
+                self.chat_model.appendRow(top_item)
                 self.send_to.clear()
                 self.send_to.addItem("Everyone")
                 for client in clients:
@@ -213,6 +213,11 @@ class ClientUIWidget(QWidget):
                     self.chat_model.appendRow(item)
                     if client != self.connected_username:
                         self.send_to.addItem(client)
+            elif received.startswith("[CHECK_DUPLICATES]="):
+                clients = received.split("[CHECK_DUPLICATES]=")[1].split("-")
+                for client in clients:
+                    if client == self.connected_username:
+                        self.disconnect_from_server()
             elif received.startswith("[SENDTO:ALL:"):
                 name = received.split("]")[0][1:].split(":")[2] + ": "
                 item = QtGui.QStandardItem(name + received.split("=")[1])
