@@ -1,4 +1,5 @@
-message = "[SENDTO:ALL:john]=hi"
-name = message.split("]")[0][1:].split(":")[2] + ": "
-print(name)
+import re
+
+message = "19a.168.46"
+print(bool(re.match("^[0-9\.]*$", message)))
 

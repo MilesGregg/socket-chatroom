@@ -47,6 +47,7 @@ class Server:
         """
         client_nickname = ""
         while True:
+            # decode the incoming message using utf-8
             message = client.recv(constants.BUFFER_SIZE).decode(constants.ENCODING)
 
             if message.startswith("[SENDTO:ALL]") and client_nickname:
@@ -55,21 +56,18 @@ class Server:
             elif message.startswith("[SENDTO") and client_nickname:
                 message_split = message.split("]")
                 name = message_split[0][1:].split(":")[1]
-                #print("NAME = " + name)
-                #print("ACTUAL MESSAGE = " + message_split[1].split("=")[1])
                 for client_sock, client_name in self.connections.items():
                     if name == client_name:
-                        #print("sending to client")
                         client_sock.send(bytes("[SENDTO:" + client_nickname + "]=" + message_split[1].split("=")[1], constants.ENCODING))
                 continue
             elif message.startswith("[JOINED]"):
                 client_nickname = message.split("=")[1]
-                '''current_clients = []
+                current_clients = []
                 [current_clients.append(client_name) for _, client_name in self.connections.items()]
                 if client_nickname in current_clients:
+                    client.send(bytes("[DUPLICATE]" + client_nickname, constants.ENCODING))
                     continue
-                #print(current_clients)
-                time.sleep(0.1)'''
+                time.sleep(0.1)
                 self.connections[client] = client_nickname
                 print(client_nickname + " joined that chat!")
                 self.send_to_clients(bytes("[JOINED]=" + client_nickname, constants.ENCODING))

@@ -1,3 +1,4 @@
+import re
 import socket
 import os
 from threading import Thread
@@ -72,7 +73,7 @@ class ClientUIWidget(QWidget):
         self.connect.clicked.connect(self.connect_to_server)
         self.disconnect = QPushButton("Disconnect")
         self.disconnect.setStyleSheet(constants.BUTTON_COLOR)
-        self.disconnect.clicked.connect(self.disconnect_from_server)
+        self.disconnect.clicked.connect(lambda: self.disconnect_from_server(False))
         grid.addWidget(self.connect, 3, 0, 1, 1)
         grid.addWidget(self.disconnect, 3, 1, 1, 1)
 
@@ -131,23 +132,30 @@ class ClientUIWidget(QWidget):
         :return: None
         """
         port_text = self.port_input.text()
+        ip_address_text = self.ip_address_input.text()
         self.connected_username = self.nickname_input.text()
-        if len(self.nickname_input.text()) == 0 or len(self.ip_address_input.text()) == 0 or len(port_text) == 0 or not port_text.isnumeric():
+        if bool(re.match("^[0-9\.]*$", ip_address_text)) == False:
+            print("IP address must be numbers and periods only")
+            return
+        elif not port_text.isnumeric():
+            print("Port must be numeric")
+            return
+        elif len(self.nickname_input.text()) == 0 or len(ip_address_text) == 0 or len(port_text) == 0:
             print("Nickname, IP Address, and Port input must be a number and greater than 0 characters long")
             return
         try:
-            self.socket_connection.connect((self.ip_address_input.text(), int(port_text)))
+            self.socket_connection.connect((ip_address_text, int(port_text)))
         except:
             print("can't connect to server...")
             self.socket_connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             return
-        self.socket_connection.send(bytes("[JOINED]=" + self.nickname_input.text(), constants.ENCODING))
         self.connected = True
+        self.socket_connection.send(bytes("[JOINED]=" + self.nickname_input.text(), constants.ENCODING))
         self.tabs.setTabEnabled(1, True)
         self.thread = Thread(target=self.update)
         self.thread.start()
 
-    def disconnect_from_server(self) -> None:
+    def disconnect_from_server(self, dulplicate) -> None:
         """
         Distconnect to the current server that the client is connected to and will reconnect when entering a new
         nickname, ip address, and port number.
@@ -156,7 +164,8 @@ class ClientUIWidget(QWidget):
         """
         if self.connected == False:
             return
-        self.socket_connection.send(bytes("[LEFT]="  + self.nickname_input.text(), constants.ENCODING))
+        if dulplicate == False:
+            self.socket_connection.send(bytes("[LEFT]="  + self.nickname_input.text(), constants.ENCODING))
         self.connected = False
         self.tabs.setTabEnabled(1, False)
         #self.thread.join()
@@ -197,9 +206,11 @@ class ClientUIWidget(QWidget):
                     sys.exit(0)
                 except SystemExit:
                     os._exit(0)
-            #print("message from server = " + received)
 
-            if received.startswith("[CLIENTS]="):
+            if received.startswith("[DUPLICATE]"):
+                print("Duplicate username found!")
+                self.disconnect_from_server(True)
+            elif received.startswith("[CLIENTS]="):
                 clients = received.split("[CLIENTS]=")[1].split("-")
                 self.chat_model.clear()
                 top_item = QtGui.QStandardItem("All Users:\n")
@@ -213,11 +224,6 @@ class ClientUIWidget(QWidget):
                     self.chat_model.appendRow(item)
                     if client != self.connected_username:
                         self.send_to.addItem(client)
-            elif received.startswith("[CHECK_DUPLICATES]="):
-                clients = received.split("[CHECK_DUPLICATES]=")[1].split("-")
-                for client in clients:
-                    if client == self.connected_username:
-                        self.disconnect_from_server()
             elif received.startswith("[SENDTO:ALL:"):
                 name = received.split("]")[0][1:].split(":")[2] + ": "
                 item = QtGui.QStandardItem(name + received.split("=")[1])
@@ -255,7 +261,7 @@ class ClientUIWindow(QMainWindow):
 
         :return: None
         """
-        self.client.disconnect_from_server()
+        self.client.disconnect_from_server(False)
 
 def set_dark_theme() -> None:
     """
